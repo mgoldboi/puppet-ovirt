@@ -144,18 +144,18 @@ This setting can be used to override the default firewall manager.  The module u
 Limitations
 ------------
 
-This module is known to work with oVirt 3.3.  Other versions of oVirt have not been tested.
+This module is known to work with oVirt 3.5.x  Other versions of oVirt have not been tested.
 
 This module has been tested with the following operating systems:
 
 * RHEL/CentOS 6.x
-* Fedora 19
+* Fedora 20
 
 
 Development
 ------------
 
-GitHub: <https://github.com/jasonc/puppet-ovirt>
+GitHub: <https://github.com/fusor/puppet-ovirt>
 
-Puppet Forge: <http://forge.puppetlabs.com/jcannon/ovirt>
+foreked from : <http://forge.puppetlabs.com/jcannon/ovirt>
 
