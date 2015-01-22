@@ -15,7 +15,7 @@ $ovirt_release_base_url = 'http://resources01.phx.ovirt.org/releases/ovirt-relea
 		centos, redhat: {
 			$ovirt_release     = 'ovirt-release35'
 			$ovirt_release_url = "${ovirt_release_base_url}/ovirt-release35.rpm"
-  		}
+		}
 		fedora: {
 			$ovirt_release     = 'ovirt-release-fedora'
 			$ovirt_release_url = "${ovirt_release_base_url}/${ovirt_release}.noarch.rpm"
