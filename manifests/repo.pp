@@ -8,7 +8,7 @@
 #   This setting can be used to override the default url of http://ovirt.org/releases.
 #
 class ovirt::repo(
-$ovirt_release_base_url = 'http://resources01.phx.ovirt.org/releases/ovirt-release/')
+$ovirt_release_base_url = 'http://resources.ovirt.org/pub/yum-repo/')
 {
 
 	case $::operatingsystem {
