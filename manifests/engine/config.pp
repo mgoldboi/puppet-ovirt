@@ -40,9 +40,17 @@
 # [*storage_address*]
 #   This setting can be used to override the default storage server address
 #
-# [*share_path*]
+# [*storage_path*]
 #   This setting can be used to override the default storage server path
 #
+# [*export_name*]
+#   This setting can be used to override the default export domain name
+#
+# [*export_address*]
+#   This setting can be used to override the default export domain address
+#
+# [*export_path*]
+#   This setting can be used to override the default export domain path
 # === Examples
 #
 #  class { ovirt::engine:
@@ -62,11 +70,12 @@ class ovirt::engine::config(
 	$host_address =  'hypervisor1.rhci.redhat.com',
 	$root_password = 'redhat!!',
 	$storage_name =  'my_storage',
-	$storage_type =  'nfs',
 	$storage_address = '192.168.112.1',
-	$share_path =	   '/usr/share/nfs/data2',
+	$storage_path = '/usr/share/nfs/data2',
+	$export_address = '192.168.112.1',
 	$export_name =   'my_export',
-#	$setup_dc = 'true'
+	$export_path = '/usr/share/nfs/export',
+	$storage_type =  'nfs',
 ) {
 	include ovirt::engine::packages
 	include ovirt::engine::setup
@@ -92,12 +101,12 @@ class ovirt::engine::config(
 		  File[$config_file],
 		],
 #		onlyif => "test ${healthy} = true",
-		refreshonly => true,
+#		refreshonly => true,
 		path        => '/usr/bin/:/bin/:/sbin:/usr/sbin',
 		command     => "python ${config_file}",
-		logoutput => "on_failure",
+		logoutput => true,#"on_failure",
 		timeout     => 1800,
-		tries => 10,
+		tries => 5,
 		try_sleep => 10,
 		}
 }

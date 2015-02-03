@@ -1,4 +1,4 @@
-#! /usr/bin/python
+#! /usr/bin/pythoin
 import time
 from ovirtsdk.api import API
 from ovirtsdk.xml import params
@@ -24,20 +24,22 @@ ROOT_PASSWORD =		 '<%= @root_password %>' #'redhat'
 #=============================
 
 #=======storage config===========
-STORAGE_ADDRESS =	 '<%= @storage_address %>' #'192.168.0.101'
-SHARE_PATH 	=	 '<%= @share_path%>' #'/usr/share/nfs/data2'
+DATA_STORAGE_ADDRESS =	 '<%= @storage_address %>' #'192.168.0.101'
+DATA_SHARE_PATH =	 '<%= @storage_path%>' #'/usr/share/nfs/data2'
 DATA_STORAGE_NAME = 	 '<%= @storage_name %>' #'my_storage'
-ISO_STORAGE_NAME =	 'ISO_DOMAIN'
-EXPORT_NAME =  		 '<%= @export_name %>' #'my_export'
+EXPORT_STORAGE_ADDRESS = '<%= @export_address %>' #'192.168.0.101'
+EXPORT_SHARE_PATH =	 '<%= @export_path %>'
+EXPORT_STORAGE_NAME = 	 '<%= @export_name %>' #'my_export'
 STORAGE_TYPE =	 	 '<%= @storage_type %>' #'nfs'
+ISO_STORAGE_NAME =	 'ISO_DOMAIN'
 #=============================
 
 
 def waitVDSMHostUp( engine_api, host):
-    ENGINE_RETRIES = 60
-    ENGINE_DELAY = 5
+    #ENGINE_RETRIES = 60
+    #ENGINE_DELAY = 5
     VDSM_RETRIES = 600
-    VDSM_DELAY = 1
+    VDSM_DELAY = 5
  
     tries = VDSM_RETRIES
     isUp = False
@@ -66,56 +68,113 @@ def waitVDSMHostUp( engine_api, host):
     return isUp
 
 def createDataCenter(engine_api):
-	try:
-	    if engine_api.datacenters.add(params.DataCenter(name=DC_NAME, storage_type='nfs', version=VERSION,)):
-		print 'NFS Data Center was created successfully'
-	except Exception as e:
-	    print 'Failed to create NFS Data Center:\n%s' % str(e)
+        try:
+            dc= engine_api.datacenters.get(name=DC_NAME)
+            if dc:
+                print 'Datacenter: '+dc.name+' already exists'
+            else:
+                    if engine_api.datacenters.add(params.DataCenter(name=DC_NAME, storage_type='nfs', version=VERSION,)):
+                        print 'NFS Data Center was created successfully'
+        except Exception as e:
+		print 'Failed to create NFS Data Center:\n%s' % str(e)
+		exit(1)
 
 def createCluster(engine_api):
-	try:
-	   if engine_api.clusters.add(params.Cluster(name=CLUSTER_NAME, cpu=params.CPU(id=CPU_TYPE), data_center=engine_api.datacenters.get(DC_NAME), version=VERSION)):
-	       print 'Cluster was created successfully'
-	except Exception as e:
-	       print 'Failed to create Cluster:\n%s' % str(e)
+        try:
+           cluster = engine_api.clusters.get(name=CLUSTER_NAME)
+           if cluster:
+                print 'Cluster: '+cluster.name+' already exists'
+           else:
+                if engine_api.clusters.add(params.Cluster(name=CLUSTER_NAME, cpu=params.CPU(id=CPU_TYPE), data_center=engine_api.datacenters.get(DC_NAME), version=VERSION)):
+                  print 'Cluster was created successfully'
+        except Exception as e:
+               	print 'Failed to create Cluster:\n%s' % str(e)
+		exit(1)
 
 def addHost(engine_api):
-	try:
-	    if engine_api.hosts.add(params.Host(name=HOST_NAME, address=HOST_ADDRESS, cluster=engine_api.clusters.get(CLUSTER_NAME), root_password=ROOT_PASSWORD)):
+        try:
+            host = engine_api.hosts.get(name=HOST_NAME)
+            if host:
+                print 'Host: '+host.name+' already exists'
 		waitVDSMHostUp( engine_api, HOST_NAME )
-	except Exception as e:
-	    print 'Failed to install Host:\n%s' % str(e)
+            else:
+                    if engine_api.hosts.add(params.Host(name=HOST_NAME, address=HOST_ADDRESS, cluster=engine_api.clusters.get(CLUSTER_NAME), root_password=ROOT_PASSWORD)):
+                        up =  waitVDSMHostUp( engine_api, HOST_NAME )
+			if up != True:
+				exit(1)
+			
+        except Exception as e:
+            print 'Failed to install Host:\n%s' % str(e)
+	    exit(1)
 
+def createDataStorageDomain(engine_api, type):
+        if type == 'data':
+                sd = engine_api.storagedomains.get(name=DATA_STORAGE_NAME)
+                sdParams = params.StorageDomain(name=DATA_STORAGE_NAME,
+                                        data_center=engine_api.datacenters.get(DC_NAME),
+                                        type_='data',
+                                        host=engine_api.hosts.get(HOST_NAME),
+                                        storage = params.Storage(   type_=STORAGE_TYPE,
+                                                           address=DATA_STORAGE_ADDRESS,
+                                                           path=DATA_SHARE_PATH  )  )
+                if sd:
+                        print 'Storage: '+sd.name+' already exists'
+#                        if sd.status:
+#                                if sd.status.state == 'unattached':
+#                                        attachStorageDomain(engine_api,DATA_STORAGE_NAME)
+                else:
+                        if engine_api.storagedomains.add(sdParams):
+                                print 'NFS Storage Domain was created successfully'
+                                attachStorageDomain(engine_api,DATA_STORAGE_NAME)
 
-def createDataStorageDomain(engine_api):
-	sdParams = params.StorageDomain(name=DATA_STORAGE_NAME,
-			  data_center=engine_api.datacenters.get(DC_NAME),
-			  type_='data',
-			  host=engine_api.hosts.get(HOST_NAME),
-			  storage = params.Storage(   type_=STORAGE_TYPE,
-									   address=STORAGE_ADDRESS,
-									   path=SHARE_PATH  )  )
+def createExportStorageDomain(engine_api, type):
+        if type == 'export':
+                sd = engine_api.storagedomains.get(name=EXPORT_STORAGE_NAME)
+                sdParams = params.StorageDomain(name=EXPORT_STORAGE_NAME,
+                                data_center=engine_api.datacenters.get(DC_NAME),
+                                type_='export',
+                                host=engine_api.hosts.get(HOST_NAME),
+                                storage = params.Storage(   type_=STORAGE_TYPE,
+                                           address=EXPORT_STORAGE_ADDRESS,
+                                           path=EXPORT_SHARE_PATH  )  )
+                if sd:
+                        print 'Storage: '+sd.name+' already exists'
+                        if sd.status:
+                                if sd.status.state == 'unattached':
+                                        attachStorageDomain(engine_api,EXPORT_STORAGE_NAME)
+#                                        activateStorageDomain(engine_api,EXPORT_STORAGE_NAME)
+                else:
+                        if engine_api.storagedomains.add(sdParams):
+                                print 'NFS Storage Domain was created successfully'
+                                attachStorageDomain(engine_api,DATA_STORAGE_NAME)
+#                                activateStorageDomain(engine_api,EXPORT_STORAGE_NAME)
 
-	try:
-	    if engine_api.storagedomains.add(sdParams):
-		print 'NFS Storage Domain was created successfully'
-	except Exception as e:
-	    print 'Failed to create %s Domain:\n%s' % (STORAGE_TYPE, str(e))
 
 def attachStorageDomain(engine_api,storage_name):
-	try:
-	    if engine_api.datacenters.get(name=DC_NAME).storagedomains.add(engine_api.storagedomains.get(name=storage_name)):
-		print '%s Domain was attached successfully' % storage_name
-	except Exception as e:
-	    print 'Failed to attach %s Domain:\n%s' % (storage_name, str(e))
+        try:
+            if engine_api.datacenters.get(name=DC_NAME).storagedomains.add(engine_api.storagedomains.get(name=storage_name)):
+                print '%s Domain was attached successfully' % storage_name
+        except Exception as e:
+            print 'Failed to attach %s Domain:\n%s' % (storage_name, str(e))
 	    exit(1)
+
+def activateStorageDomain(engine_api,storage_name):
+        try:
+            if api.datacenters.get(DC_NAME).storagedomains.get(EXPORT_STORAGE_NAME).activate():
+                                        print 'Export Domain was activated successfully'
+        except Exception as e:
+                                print 'Failed to activate %s Domain:\n%s' % (EXPORT_STORAGE_NAME, str(e))
+				exit(1)
 
 
 engine_api = API(url=URL, username=USERNAME, password=PASSWORD,insecure=True)
-#if @setup_dc:
+print "Creating DataCenter"
 createDataCenter(engine_api)
+print "Creating Cluster"
 createCluster(engine_api)
+print "Adding Host"
 addHost(engine_api)
-createDataStorageDomain(engine_api)
-attachStorageDomain(engine_api,DATA_STORAGE_NAME)
-#attachStorageDomain(engine_api,ISO_STORAGE_NAME)
+print "Creating data storage domain"
+createDataStorageDomain(engine_api,'data')
+print "Creating Export storage domain"
+createExportStorageDomain(engine_api,'export')
