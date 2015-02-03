@@ -122,14 +122,5 @@ class ovirt::engine::setup(
                 notify => Class['ovirt::engine::config'],
                 }
 
-	file {'/root/.ovirtmshellrc':
-		ensure => file,
-		owner   => 'root',
-		group   => 'root',
-		mode    => '0644',
-		content => template('ovirt/.ovirtshellrc.erb'),
-		require => Service['ovirt-engine']
-		}
-
 }
 
