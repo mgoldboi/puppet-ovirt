@@ -1,0 +1,162 @@
+import os
+import subprocess
+import sys
+import time
+#=======Engine config===========
+URL =                    '<%= @url %>' #'https://localhost:443'
+USERNAME =               '<%= @username %>' #'admin@internal'
+PASSWORD =               '<%= @password %>' #'redhat'
+##=============================
+#
+##=======DC/Cluster config===========
+DC_NAME =                '<%= @dc_name %>' #'my_datacenter'
+CLUSTER_NAME =           '<%= @cluster_name %>' #'my_cluster'
+HOST_NAME =              '<%= @host_name %>' #'my_host'
+CPU_TYPE =               '<%= @cpu_type %>' #'Intel Nehalem Family'
+##=============================
+#
+##=======host config===========
+HOST_ADDRESS =           '<%= @host_address %>' #'192.168.112.218'
+ROOT_PASSWORD =          '<%= @root_password %>' #'redhat'
+##=============================
+#
+##=======storage config===========
+DATA_STORAGE_ADDRESS =   '<%= @storage_address %>' #'192.168.0.101'
+DATA_SHARE_PATH =        '<%= @storage_path%>' #'/usr/share/nfs/data2'
+DATA_STORAGE_NAME =      '<%= @storage_name %>' #'my_storage'
+EXPORT_STORAGE_ADDRESS = '<%= @export_address %>' #'192.168.0.101'
+EXPORT_SHARE_PATH =      '<%= @export_path %>'
+EXPORT_STORAGE_NAME =    '<%= @export_name %>' #'my_export'
+STORAGE_TYPE =           '<%= @storage_type %>' #'nfs'
+ISO_STORAGE_NAME =       'ISO_DOMAIN'
+TEMPLATE_NAME =		 '<%= @template_name %>' 
+VM_NAME = 'CMFE'
+##=============================
+#
+try:
+    from ovirtsdk.api import API
+    from ovirtsdk.xml import params
+    from ovirtsdk.infrastructure.errors import RequestError
+except:
+    print "Please re-run after you have installed 'ovirt-engine-sdk-python'"
+    print "Example: easy_install ovirt-engine-sdk-python"
+    sys.exit()
+
+
+#ENV_IP = "OVIRT_IP"
+#ENV_USERNAME = "OVIRT_USERNAME"
+#ENV_PASSWORD = "OVIRT_PASSWORD"
+
+
+def run_command(cmd):
+    print "Running: %s" % (cmd)
+    handle = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    out_msg, err_msg = handle.communicate(None)
+    return handle.returncode, out_msg, err_msg
+
+#if __name__ == "__main__":
+def import_template():
+#    for env_var in [ENV_IP, ENV_USERNAME, ENV_PASSWORD]:
+#        if env_var not in os.environ:
+#            print "Please re-run after you have set an environment variable for '%s'" % (env_var)
+#            sys.exit()
+    password = PASSWORD
+    username = USERNAME 
+    url = URL
+
+    api = API(url=url, username=username, password=password, insecure=True)
+    if not api:
+        print "Failed to connect to '%s'" % (url)
+        sys.exit()
+
+#    cfme_image_file = "./cfme-rhevm-5.3-47.x86_64.rhevm.ova"
+#    imported_vm_name = "jwm_cfme-rhevm-5.3-47_%s" % (time.time())
+    imported_template_name = TEMPLATE_NAME
+    export_domain_name = EXPORT_STORAGE_NAME
+    storage_domain_name = DATA_STORAGE_NAME
+    cluster_name = CLUSTER_NAME
+    data_center_name = DC_NAME
+
+#    if not os.path.exists(cfme_image_file):
+#        print "Unable to find '%s'" % (cfme_image_file)
+#        sys.exit()
+
+    # Verify Export domain exists
+    data_center = api.datacenters.get(data_center_name)
+    export_domain = data_center.storagedomains.get(export_domain_name)
+    if not export_domain:
+        print "Unable to find export domain '%s'" % (export_domain_name)
+        sys.exit()
+    if export_domain.status.state != "active":
+        print "Export domain '%s' is in unexpected state '%s'" % (export_domain_name, export_domain.state)
+        sys.exit()
+
+#   print "Verified export domain exists: '%s' on '%s'" % (export_domain_name, url)
+    ###
+    # We will scp file to ovirt engine, then ssh and execute engine-image-uploaded local to the ovirt engine node
+    # Alternative is we run 'rhevm-image-uploaded' from the Satellite node.
+    # We need to install 'rhevm-image-uploader' RPM
+    #  use "-r" of 'rhevm-image-uploader' to specify remote ovirt engine node address
+    ###
+#   engine_image_upload_cmd = "engine-image-uploader -u %s -p \'%s\' -N %s -e %s -v -m upload ~/%s" % (username, password, imported_vm_name, export_domain_name, cfme_image_file)
+#   cmd = "ssh root@%s -o \'StrictHostKeyChecking no\' -C '%s'" % (ip, engine_image_upload_cmd)
+#   status, out, err = run_command(cmd)
+#    if status:
+#        print "Error running:  %s" % (cmd)
+#        print err
+#        sys.exit()
+
+#    print "Uploaded '%s' as '%s' to export domain '%s' on '%s'" % (cfme_image_file, imported_vm_name, export_domain_name, ip)
+#    print out
+
+    # Import appliance as a VM template
+#   data_center = api.datacenters.get(data_center_name)
+#   export_domain = data_center.storagedomains.get(export_domain_name)
+    storage_domain = api.storagedomains.get(storage_domain_name)
+    cluster = api.clusters.get(name=cluster_name)
+
+    import_template_params = params.Action(storage_domain=storage_domain, 
+        cluster=cluster)
+	
+    api.storagedomains.get(export_domain_name).templates.get(imported_template_name).import_template(import_template_params)
+
+#   export_domain.templates.get(imported_vm_name).import(import_template_params)
+    print 'Template was imported successfully'
+    print 'Waiting for Template to reach Down status'
+    while api.templates.get(imported_template_name).status.state != 'ok':
+        time.sleep(1)
+
+def create_vm_from_template():
+   try:
+       api.vms.add(params.VM(name=VM_NAME, cluster=api.clusters.get(CLUSTER_NAME), template=api.templates.get(TEMPLATE_NAME)) )
+       print 'VM was created from Template successfully'
+       print 'Waiting for VM to reach Down status'
+       while api.vms.get(VM_NAME).status.state != 'down':
+           time.sleep(1)
+   except Exception as e:
+       print 'Failed to create VM from Template:\n%s' % str(e)
+
+def add_disk_to_vm():
+   MB = 1024*1024
+   GB = 1024*MB
+   try:
+       api.vms.get(VM_NAME).disks.add(params.Disk(storage_domains=params.StorageDomains(storage_domain=[api.storagedomains.get(DATA_STORAGE_NAME)]),
+                                                   size=40*GB,
+						   status=None,
+                                                   interface='virtio',
+                                                   format='cow',
+                                                   sparse=True,
+						   name='DB_disk',
+                                                   bootable=False))
+       print 'Disk added to VM'
+       print 'Waiting for VM to reach Down status'
+       while api.vms.get(VM_NAME).status.state != 'down':
+           time.sleep(1)
+   
+   except Exception as e:
+       print 'Failed to create VM with disk and NIC\n%s' % str(e)
+
+api = API(url=URL, username=USERNAME, password=PASSWORD, insecure=True)
+import_template()
+create_vm_from_template()
+add_disk_to_vm()
