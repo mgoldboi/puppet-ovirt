@@ -1,7 +1,7 @@
 Name:       ovirt-puppet
 Epoch:      1
 Version:    0.0.1
-Release:    1%{?dotalphatag}%{?dist}
+Release:    2%{?dotalphatag}%{?dist}
 Summary:    Collection of Puppet modules for oVirt deployment
 Group:      Applications/System
 License:    GPLv3+ and ASL 2.0
@@ -33,4 +33,7 @@ cp -r * %{buildroot}/%{_datadir}/ovirt-puppet
 %{_datadir}/ovirt-puppet/*
 
 %changelog
+* Thu Feb 12 2015 John Matthews <jwmatthews@gmail.com> 0.0.1-2
+- new package built with tito
+
 
