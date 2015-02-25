@@ -79,8 +79,7 @@ class ovirt::engine::setup(
 	$password =      'admin',
 	
 ){
-	include ovirt::engine::packages
-#	include ovirt::engine::config
+	require ovirt::engine::packages
 
 	$answers_file='/var/lib/ovirt-engine/setup/answers/answers-from-puppet'
 
@@ -92,6 +91,7 @@ class ovirt::engine::setup(
 		content => template('ovirt/answers.erb'),
 		}
 
+	notify {"oVirt Setup phase- Done":}
 	exec { 'engine-setup':
 		require     => [
 		  Package[ovirt-engine],
@@ -119,7 +119,7 @@ class ovirt::engine::setup(
                 tries => 10,
                 timeout => 100,
                 try_sleep => 10,
-                notify => Class['ovirt::engine::config'],
+#                notify => Class['ovirt::engine::config'],
                 }
 
 }

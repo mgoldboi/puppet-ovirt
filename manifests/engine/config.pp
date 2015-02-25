@@ -77,10 +77,8 @@ class ovirt::engine::config(
 	$export_path = '/usr/share/nfs/export',
 	$storage_type =  'nfs',
 ) {
-	include ovirt::engine::packages
-	include ovirt::engine::setup
+	require ovirt::engine::setup
 	
-	notify {"datacenters are: ${::ovirt_datacenters}":}
 	$config_file='/var/lib/ovirt-engine/setup/engine-DC-config.py'
 
 	file { $config_file:
@@ -92,9 +90,7 @@ class ovirt::engine::config(
 		}
 	notice ("configuration script added on \$config_file")
 
-	$healthy = $::ovirt_healthy
-	#if fact not including dc notify exec
-	notify {"ovirt service is healthy? - ${healthy}":}
+	notify {"oVirt Configuration stage- Done":}
 	exec { 'engine_dc_config':
 		require     => [
 		  Service['ovirt-engine'],

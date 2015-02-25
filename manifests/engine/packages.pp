@@ -1,5 +1,6 @@
 class ovirt::engine::packages {
-	include ovirt::repo
+	require ovirt::repo
+	notify {"oVirt Package installation stage- Done":}
 	package { 'ovirt-engine':
 		ensure  => installed,
 #		require => Yumrepo['ovirt'],

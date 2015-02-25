@@ -30,5 +30,5 @@ $ovirt_release_base_url = 'http://resources.ovirt.org/pub/yum-repo/')
 			  provider => 'rpm',
 			  source   => $ovirt_release_url,
 		}
-		notify {"ovirt release is ? - ${ovirt_release}":}
+		notify {"deploying needed repositories":}
 }
