@@ -1,0 +1,129 @@
+import os
+import subprocess
+import sys
+import time
+
+#=======Engine config===========
+URL = '<%= @url %>'  # 'https://localhost:443'
+USERNAME = '<%= @username %>'  # 'admin@internal'
+PASSWORD = '<%= @password %>'  # 'changeme'
+# =============================
+##
+# ======CFME=======================
+VM_NAME = 'cfme'
+CFME_HOSTNAME = '<%= @cfme_hostname %>'  # 'cfme.fqdn'
+CFME_ROOT_PASSWORD = '<%= @cfme_root_password %>'  # changemei
+RHCI_SERVER = '<%= @rhci_server %>'
+# =============================
+CLOUD_INIT_SCRIPT = """
+yum_repos:
+    puppet:
+        baseurl: https://yum.puppetlabs.com/el/6/products/x86_64/
+        enabled: true
+        gpgcheck: false
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL
+        name: puppet
+    puppet-dept:
+        baseurl: https://yum.puppetlabs.com/el/6/dependencies/x86_64/
+        enabled: true
+        gpgcheck: false
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL
+        name: puppet-dept
+    el6:
+        baseurl: http://download.eng.tlv.redhat.com/pub/rhel/released/RHEL-6/6.6/Server/x86_64/os/
+        enabled: true
+        gpgcheck: false
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL
+        name: el6
+    el6_optional:
+        baseurl: http://download.eng.tlv.redhat.com/pub/rhel/released/RHEL-6/6.6/Server/optional/x86_64/os
+        enabled: true
+        gpgcheck: false
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL
+        name: el6
+    el6_zstream:
+        baseurl: http://download.eng.tlv.redhat.com/pub/rhel/rel-eng/repos/RHEL-6.6-Z/x86_64/
+        enabled: true
+        gpgcheck: false
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL
+        name: el6
+    scl:
+        baseurl: http://download.eng.tlv.redhat.com/released/RHEL-6-Satellite/6.0.4/Satellite/x86_64/os/RHSCL/
+        enabled: true
+        gpgcheck: false
+        gpgkey: file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL
+        name: scl
+
+packages:
+ - puppet
+ - ruby193-ruby-devel
+ - libstdc++-devel
+ - gcc
+ - gcc-c++
+ - make
+ - libxml2
+ - libxml2-devel
+ - libxslt
+ - libxslt-devel
+
+puppet:
+ conf:
+   agent:
+     server: %s
+"""
+
+
+def run_vm():
+    vm = api.vms.get(VM_NAME)
+    vmstat = vm.get_status().state
+    if vmstat == 'down':
+        try:
+            osVersion = vm.get_os().get_type()
+            # and CLOUDINIT == True:
+            if (osVersion == "rhel_6x64" or osVersion == "rhel_6" or osVersion == "rhel_7x64"):
+                print "Starting VM: " + vm.name + " with cloud-init options"
+#               scontent = "write_files:\n-   content: |\n        search example.com\n        nameserver 10.10.10.1\n        nameserver 10.10.10.2\n    path: /etc/resolv.conf"
+                action = params.Action(
+                    vm=params.VM(
+                        initialization=params.Initialization(
+                            cloud_init=params.CloudInit(
+                                host=params.Host(address=CFME_HOSTNAME),
+                                users=params.Users(
+                                    user=[
+                                        params.User(user_name="root", password=CFME_ROOT_PASSWORD)]
+                                ),
+                                files=params.Files(
+                                    file=[
+                                        params.File(
+                                            name="ignored",
+                                            type_="plaintext",
+                                            content=CLOUD_INIT_SCRIPT % (RHCI_SERVER)
+                                        )
+                                    ]
+                                )
+                            )
+                        )
+                    )
+                )
+                vm.start(action)
+            else:
+                print "Starting VM " + vm.name
+                vm.start()
+            while vmstat != 'down':
+                sleep(1)
+                vmstat = vm.get_status().state
+        except Exception, err:
+            print "Error on starting VM"
+            print err
+try:
+    from ovirtsdk.api import API
+    from ovirtsdk.xml import params
+    from ovirtsdk.infrastructure.errors import RequestError
+except:
+    print "Please re-run after you have installed 'ovirt-engine-sdk-python'"
+    print "Example: easy_install ovirt-engine-sdk-python"
+    sys.exit()
+
+
+api = API(url=URL, username=USERNAME, password=PASSWORD, insecure=True)
+run_vm()
