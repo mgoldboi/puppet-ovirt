@@ -97,7 +97,8 @@ def run_vm():
                                         params.File(
                                             name="ignored",
                                             type_="plaintext",
-                                            content=CLOUD_INIT_SCRIPT % (RHCI_SERVER)
+                                            content=CLOUD_INIT_SCRIPT % (
+                                                RHCI_SERVER)
                                         )
                                     ]
                                 )
