@@ -8,15 +8,15 @@ class ovirt::engine::run_vm(
         $cpu_type =      'Intel Nehalem Family',
         $host_name =     'my_host',
         $host_address =  'host.fqdn',
-        $root_password = 'redhat!!',
+        $root_password = 'changeme',
         $storage_name =  'my_storage',
         $storage_address = '192.168.112.1',
-        $storage_path = '/usr/share/nfs/data2',
+        $storage_path = '/path/to/share',
         $export_address = '192.168.112.1',
         $export_name =   'my_export',
-        $export_path = '/usr/share/nfs/export',
+        $export_path = '/path/to/share',
         $storage_type =  'nfs',
-	$template_name = '5c172af6-e0df-4542-9e92-c38680e54ce4',
+	$template_name = 'template_name',
 ) {
         require ovirt::engine::import_template
         $run_file='/var/lib/ovirt-engine/setup/engine-run-vm.py'

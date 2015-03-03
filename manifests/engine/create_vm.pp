@@ -7,16 +7,16 @@ class ovirt::engine::create_vm(
         $cluster_name =  'Default',
         $cpu_type =      'Intel Nehalem Family',
         $host_name =     'my_host',
-        $host_address =  'hypervisor1.rhci.redhat.com',
-        $root_password = 'redhat!!',
+        $host_address =  'hypervisor.fqdn',
+        $root_password = 'changeme',
         $storage_name =  'my_storage',
         $storage_address = '192.168.112.1',
-        $storage_path = '/usr/share/nfs/data2',
+        $storage_path = '/path/to/share',
         $export_address = '192.168.112.1',
         $export_name =   'my_export',
-        $export_path = '/usr/share/nfs/export',
+        $export_path = '/path/to/share',
         $storage_type =  'nfs',
-	$template_name = '5c172af6-e0df-4542-9e92-c38680e54ce4',
+	$template_name = 'template_name',
 ) {
 #       include ovirt::engine::packages
 #       include ovirt::engine::setup
