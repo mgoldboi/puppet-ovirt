@@ -82,12 +82,17 @@ class ovirt::engine::setup(
 	require ovirt::engine::packages
 
 	$answers_file='/var/lib/ovirt-engine/setup/answers/answers-from-puppet'
+	$ovirt_package = $ovirt::product ? {
+		'oVirt' => 'ovirt-engine',
+		'RHEV' => 'rhevm',
+	}
 
 	file { $answers_file:
 		owner   => 'root',
 		group   => 'root',
 		mode    => '0644',
-		require => Package[ovirt-engine],
+#		require => Package[ovirt-engine],
+		require => Package[$ovirt_package],
 		content => template('ovirt/answers.erb'),
 		}
 
@@ -113,8 +118,8 @@ class ovirt::engine::setup(
 
 	exec {'healthpage_check':
                 require => Service['ovirt-engine'],
-                command => "/usr/bin/curl --silent http://localhost/OvirtEngineWeb/HealthStatus > /tmp/rhev_health_output.txt && grep -q \"Welcome to Health Status\" /tmp/rhev_health_output.txt",
-                creates => "/tmp/rhev_health_output.txt",
+                command => "/usr/bin/curl --silent http://localhost/OvirtEngineWeb/HealthStatus > /tmp/rhev_health_output.txt && grep -q \"Welcome to Health Status\" /tmp/ovirt_health_output.txt",
+                creates => "/tmp/ovirt_health_output.txt",
                 refreshonly => true,
                 tries => 10,
                 timeout => 100,

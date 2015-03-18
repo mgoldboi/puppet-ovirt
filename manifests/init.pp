@@ -12,4 +12,5 @@
 # Jason Cannon <jason@thisidig.com>
 #
 class ovirt(
+	 $product =           'ovirt', 
 ){}
